@@ -21,15 +21,30 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String numeroDocumento) throws UsernameNotFoundException {
-        UsuarioModel usuario = usuarioRepository.findByNumeroDocumento(numeroDocumento)
-                .orElseThrow(() -> new UsernameNotFoundException("Usuario no encontrado: " + numeroDocumento));
 
+        // 1. Buscar usuario por número de documento
+        UsuarioModel usuario = usuarioRepository.findByNumeroDocumento(numeroDocumento)
+                .orElseThrow(() -> new UsernameNotFoundException(
+                        "Usuario no encontrado: " + numeroDocumento));
+
+        // 2. Validar que el usuario esté activo (si tu modelo tiene ese campo)
+        //    Descomenta si UsuarioModel tiene un campo 'activo' o 'habilitado':
+        // if (!usuario.isActivo()) {
+        //     throw new DisabledException("Usuario deshabilitado: " + numeroDocumento);
+        // }
+
+        // 3. Construir el rol con prefijo ROLE_ (requerido por Spring Security)
         String roleName = "ROLE_" + usuario.getRol().getNombreRol().toUpperCase();
-        
+
+        // 4. Retornar UserDetails con toda la información necesaria
         return User.builder()
                 .username(usuario.getNumeroDocumento())
                 .password(usuario.getContrasena())
                 .authorities(Collections.singletonList(new SimpleGrantedAuthority(roleName)))
+                // accountExpired, credentialsExpired, accountLocked todos en false = cuenta válida
+                .accountExpired(false)
+                .credentialsExpired(false)
+                .disabled(false)
                 .build();
     }
 }

@@ -43,16 +43,16 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Spring Security (si lo usas) -->
+        <!-- Spring Security -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-security</artifactId>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-security</artifactId>
         </dependency>
-
-        <!-- Validaciones -->
+        
+        <!-- Validaciones (@NotBlank, @Size, etc.) -->
         <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-validation</artifactId>
         </dependency>
 
         <!-- Tests -->

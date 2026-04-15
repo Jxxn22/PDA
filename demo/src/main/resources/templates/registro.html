@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESCAZONE - Registro</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/argon-dashboard-tailwind.css}">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo-container">
+                <img th:src="@{/img/apple-icon.png}" alt="GESCAZONE Logo" onerror="this.style.display='none'">
+                <h1>GESCAZONE</h1>
+            </div>
+        </div>
+
+        <div class="login-body">
+            <h2 class="form-title">Crear Cuenta</h2>
+
+            <!-- Error: documento duplicado (desde RegistroController) -->
+            <div th:if="${errorDocumento}" class="error-message show" th:text="${errorDocumento}"></div>
+
+            <!-- Errores de validación de campos (@Valid) -->
+            <div th:if="${#fields.hasAnyErrors()}" class="error-message show">
+                <span th:each="err : ${#fields.allErrors()}" th:text="${err}"></span>
+            </div>
+
+            <!-- Formulario de registro (POST a RegistroController) -->
+            <form th:action="@{/registro}" th:object="${usuario}" method="post" id="registroForm">
+
+                <div class="form-group">
+                    <label for="nombre">Nombre</label>
+                    <input
+                        type="text"
+                        id="nombre"
+                        th:field="*{nombre}"
+                        required
+                        maxlength="50"
+                        placeholder="Ingrese su nombre"
+                        autocomplete="given-name">
+                    <span th:if="${#fields.hasErrors('nombre')}" th:errors="*{nombre}" class="field-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="apellido">Apellido</label>
+                    <input
+                        type="text"
+                        id="apellido"
+                        th:field="*{apellido}"
+                        required
+                        maxlength="50"
+                        placeholder="Ingrese su apellido"
+                        autocomplete="family-name">
+                    <span th:if="${#fields.hasErrors('apellido')}" th:errors="*{apellido}" class="field-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="numeroDocumento">Número de Documento</label>
+                    <input
+                        type="text"
+                        id="numeroDocumento"
+                        th:field="*{numeroDocumento}"
+                        required
+                        maxlength="15"
+                        placeholder="Ingrese su número de documento"
+                        autocomplete="off">
+                    <span th:if="${#fields.hasErrors('numeroDocumento')}" th:errors="*{numeroDocumento}" class="field-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="correo">Correo Electrónico</label>
+                    <input
+                        type="email"
+                        id="correo"
+                        th:field="*{correo}"
+                        required
+                        maxlength="100"
+                        placeholder="Ingrese su correo electrónico"
+                        autocomplete="email">
+                    <span th:if="${#fields.hasErrors('correo')}" th:errors="*{correo}" class="field-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="contrasena">Contraseña</label>
+                    <input
+                        type="password"
+                        id="contrasena"
+                        th:field="*{contrasena}"
+                        required
+                        minlength="6"
+                        placeholder="Mínimo 6 caracteres"
+                        autocomplete="new-password">
+                    <span th:if="${#fields.hasErrors('contrasena')}" th:errors="*{contrasena}" class="field-error"></span>
+                </div>
+
+                <div class="form-group">
+                    <label for="confirmarContrasena">Confirmar Contraseña</label>
+                    <input
+                        type="password"
+                        id="confirmarContrasena"
+                        name="confirmarContrasena"
+                        required
+                        minlength="6"
+                        placeholder="Repita su contraseña"
+                        autocomplete="new-password">
+                </div>
+
+                <div class="remember-forgot">
+                    <a th:href="@{/login}" class="forgot-link">¿Ya tiene cuenta? Inicie sesión</a>
+                </div>
+
+                <div class="button-group">
+                    <a th:href="@{/login}" class="btn btn-cerrar">Cancelar</a>
+                    <button type="submit" class="btn btn-aceptar">Registrarse</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Solo números en el campo de documento
+        document.getElementById('numeroDocumento').addEventListener('input', function() {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
+        document.getElementById('registroForm').addEventListener('submit', function(e) {
+            const contrasena = document.getElementById('contrasena').value;
+            const confirmar  = document.getElementById('confirmarContrasena').value;
+
+            if (contrasena !== confirmar) {
+                e.preventDefault();
+                mostrarError('Las contraseñas no coinciden.');
+                return;
+            }
+
+            if (contrasena.length < 6) {
+                e.preventDefault();
+                mostrarError('La contraseña debe tener al menos 6 caracteres.');
+            }
+        });
+
+        function mostrarError(mensaje) {
+            let errorDiv = document.querySelector('.error-message.custom');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message custom show';
+                document.querySelector('.form-title').after(errorDiv);
+            }
+            errorDiv.textContent = mensaje;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
+        }
+
+        setTimeout(() => {
+            document.querySelectorAll('.error-message.show')
+                .forEach(msg => msg.classList.remove('show'));
+        }, 5000);
+    </script>
+
+    <style>
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+        .error-message.show { display: block; }
+
+        .field-error {
+            display: block;
+            color: #721c24;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+    </style>
+</body>
+</html>
