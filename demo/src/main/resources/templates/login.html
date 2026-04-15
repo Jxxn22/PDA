@@ -1,0 +1,162 @@
+
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GESCAZONE - Iniciar Sesión</title>
+    <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700" rel="stylesheet" />
+    <link rel="stylesheet" th:href="@{/css/argon-dashboard-tailwind.css}">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <div class="logo-container">
+                <img th:src="@{/img/apple-icon.png}" alt="GESCAZONE Logo" onerror="this.style.display='none'">
+                <h1>GESCAZONE</h1>
+            </div>
+        </div>
+
+        <div class="login-body">
+            <h2 class="form-title">Iniciar Sesión</h2>
+
+            <!-- Mensaje de error de Spring Security -->
+            <div th:if="${error}" class="error-message show">
+                Usuario o contraseña incorrectos
+            </div>
+
+            <!-- Mensaje de logout exitoso -->
+            <div th:if="${logout}" class="success-message show">
+                Has cerrado sesión correctamente
+            </div>
+
+            <!-- Formulario de login manejado por Spring Security -->
+            <form th:action="@{/login}" method="post" id="loginForm">
+                <div class="form-group">
+                    <label for="username">Número de Documento</label>
+                    <input 
+                        type="text" 
+                        id="username" 
+                        name="username" 
+                        required 
+                        maxlength="15"
+                        placeholder="Ingrese su número de documento"
+                        autocomplete="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="password">Contraseña</label>
+                    <input 
+                        type="password" 
+                        id="password" 
+                        name="password" 
+                        required
+                        placeholder="Ingrese su contraseña"
+                        autocomplete="current-password">
+                </div>
+
+                <div class="remember-forgot">
+                    <label>
+                        <input type="checkbox" name="remember-me" id="recordar">
+                        Recordarme
+                    </label>
+                    <a href="#" class="forgot-link">¿Olvidó su contraseña?</a>
+                </div>
+
+                <div class="button-group">
+                    <button type="button" class="btn btn-cerrar" onclick="cerrarLogin()">Cerrar</button>
+                    <button type="submit" class="btn btn-aceptar">Iniciar Sesión</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        // Validar solo números en el campo de documento
+        document.getElementById('username').addEventListener('input', function(e) {
+            this.value = this.value.replace(/\D/g, '');
+        });
+
+        // Validación antes de enviar
+        document.getElementById('loginForm').addEventListener('submit', function(e) {
+            const numeroDocumento = document.getElementById('username').value;
+            const contrasena = document.getElementById('password').value;
+
+            // Validaciones básicas
+            if (!numeroDocumento || !contrasena) {
+                e.preventDefault();
+                mostrarError('Por favor, complete todos los campos');
+                return false;
+            }
+
+            if (numeroDocumento.length < 6) {
+                e.preventDefault();
+                mostrarError('El número de documento debe tener al menos 6 dígitos');
+                return false;
+            }
+
+            // Si todo está bien, el formulario se enviará a Spring Security
+        });
+
+        function mostrarError(mensaje) {
+            // Crear elemento de error si no existe
+            let errorDiv = document.querySelector('.error-message.custom');
+            if (!errorDiv) {
+                errorDiv = document.createElement('div');
+                errorDiv.className = 'error-message custom';
+                document.querySelector('.form-title').after(errorDiv);
+            }
+            
+            errorDiv.textContent = mensaje;
+            errorDiv.classList.add('show');
+            
+            // Ocultar después de 5 segundos
+            setTimeout(() => {
+                errorDiv.classList.remove('show');
+            }, 5000);
+        }
+
+        function cerrarLogin() {
+            window.close();
+        }
+
+        // Auto-ocultar mensajes después de 5 segundos
+        setTimeout(() => {
+            const messages = document.querySelectorAll('.error-message.show, .success-message.show');
+            messages.forEach(msg => msg.classList.remove('show'));
+        }, 5000);
+    </script>
+
+    <style>
+        .success-message {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .success-message.show {
+            display: block;
+        }
+
+        .error-message {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            padding: 12px 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: none;
+            font-size: 14px;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+    </style>
+</body>
+</html>
