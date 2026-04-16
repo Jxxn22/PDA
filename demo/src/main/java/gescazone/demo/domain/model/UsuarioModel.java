@@ -4,6 +4,7 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+// Sin @Document, sin @Id, sin @Indexed — esto es dominio puro
 public class UsuarioModel {
 
     private String id;
@@ -43,25 +44,18 @@ public class UsuarioModel {
 
     public String getId() { return id; }
     public void setId(String id) { this.id = id; }
-
     public String getNumeroDocumento() { return numeroDocumento; }
     public void setNumeroDocumento(String numeroDocumento) { this.numeroDocumento = numeroDocumento; }
-
     public String getNombre() { return nombre; }
     public void setNombre(String nombre) { this.nombre = nombre; }
-
     public String getApellido() { return apellido; }
     public void setApellido(String apellido) { this.apellido = apellido; }
-
     public String getCorreo() { return correo; }
     public void setCorreo(String correo) { this.correo = correo; }
-
     public String getContrasena() { return contrasena; }
     public void setContrasena(String contrasena) { this.contrasena = contrasena; }
-
     public RolModel getRol() { return rol; }
     public void setRol(RolModel rol) { this.rol = rol; }
-
     public TipoDocumentoModel getTipoDocumento() { return tipoDocumento; }
     public void setTipoDocumento(TipoDocumentoModel tipoDocumento) { this.tipoDocumento = tipoDocumento; }
 }
