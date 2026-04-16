@@ -877,9 +877,8 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 // ========== INICIALIZACIÓN (SIN CERRAR AL CLICK FUERA) ==========
+
 window.addEventListener('DOMContentLoaded', async function() {
-    const usuario = sessionStorage.getItem('usuario');
-    if (!usuario) { window.location.href = '/login'; return; }
     try {
         await cargarCatalogos();
         await Promise.all([cargarApartamentos(), cargarParqueaderos(), cargarSalones(), cargarUsuarios(), cargarResidentes()]);

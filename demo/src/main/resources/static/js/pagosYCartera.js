@@ -143,13 +143,6 @@ const propietarios = {
 
     document.getElementById('propietarioSelect').addEventListener('change', actualizarPropietario);
     actualizarPropietario();
-    // Verificar si el usuario está autenticado
-    window.addEventListener('DOMContentLoaded', function() {
-        const usuario = sessionStorage.getItem('usuario');
-        if (!usuario) {
-            window.location.href = '/login';
-        }
-    });
 
     function confirmarCerrarSesion(event) {
             event.preventDefault();
