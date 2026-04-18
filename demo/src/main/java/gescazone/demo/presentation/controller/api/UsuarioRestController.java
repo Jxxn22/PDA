@@ -47,18 +47,22 @@ public class UsuarioRestController {
     public ResponseEntity<String> crear(@RequestBody Map<String, Object> datos) {
         try {
             String numeroDocumento = (String) datos.get("numeroDocumento");
-            String contrasena = (String) datos.get("contrasena");
             String nombreRol = (String) datos.get("nombreRol");
             String nombreTipoDocumento = (String) datos.get("nombreTipoDocumento");
+            String contrasena = (String) datos.get("contrasena");
 
             if (numeroDocumento == null || numeroDocumento.trim().isEmpty())
                 return ResponseEntity.badRequest().body("El número de documento es obligatorio");
-            if (contrasena == null || contrasena.trim().isEmpty())
-                return ResponseEntity.badRequest().body("La contraseña es obligatoria");
             if (nombreRol == null || nombreRol.trim().isEmpty())
                 return ResponseEntity.badRequest().body("El rol es obligatorio");
             if (nombreTipoDocumento == null || nombreTipoDocumento.trim().isEmpty())
                 return ResponseEntity.badRequest().body("El tipo de documento es obligatorio");
+
+            RolModel rol = new RolModel();
+            rol.setNombreRol(nombreRol);
+
+            TipoDocumentoModel tipoDoc = new TipoDocumentoModel();
+            tipoDoc.setNombreTipoDocumento(nombreTipoDocumento);
 
             UsuarioModel usuario = new UsuarioModel();
             usuario.setNumeroDocumento(numeroDocumento);
@@ -66,10 +70,11 @@ public class UsuarioRestController {
             usuario.setApellido((String) datos.get("apellido"));
             usuario.setCorreo((String) datos.get("correo"));
             usuario.setContrasena(contrasena);
-            usuario.setRol(new RolModel(nombreRol.trim()));
-            usuario.setTipoDocumento(new TipoDocumentoModel(nombreTipoDocumento.trim()));
+            usuario.setRol(rol);
+            usuario.setTipoDocumento(tipoDoc);
 
-            return ResponseEntity.status(HttpStatus.CREATED).body(usuarioService.crear(usuario));
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(usuarioService.crear(usuario));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(e.getMessage());
         } catch (Exception e) {

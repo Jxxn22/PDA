@@ -65,10 +65,8 @@ public class AccesoRestController {
                     map.put("nombreCompleto", residente.getNombre() + " " + residente.getApellido());
                 }
 
-                // Enriquecer con datos del apartamento
-                ApartamentoModel apartamento = apartamentoService.consultar(reg.getIdApartamento()) != null
-                        ? buscarApartamentoPorId(reg.getIdApartamento())
-                        : null;
+                // ✅ CORREGIDO - usar buscarApartamentoPorId directamente
+                ApartamentoModel apartamento = buscarApartamentoPorId(reg.getIdApartamento());
                 if (apartamento != null) {
                     map.put("numeroApartamento", apartamento.getNumero());
                 }

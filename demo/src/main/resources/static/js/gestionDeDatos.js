@@ -160,44 +160,65 @@ function poblarSelects() {
     const selectTipoOcup = document.getElementById('tipoOcupacion');
     if (selectTipoOcup) {
         selectTipoOcup.innerHTML = '<option value="">Seleccionar...</option>';
-        catalogos.tiposOcupacion.forEach(t => selectTipoOcup.innerHTML += `<option value="${t.idTipoOcupacion}">${t.nombreTipoOcupacion}</option>`);
+        catalogos.tiposOcupacion.forEach(t => 
+            selectTipoOcup.innerHTML += `<option value="${t.nombre}">${t.nombre}</option>`
+        );
     }
+
     const selectEstadoCta = document.getElementById('estadoCuenta');
     if (selectEstadoCta) {
         selectEstadoCta.innerHTML = '<option value="">Seleccionar...</option>';
-        catalogos.estadosCuenta.forEach(e => selectEstadoCta.innerHTML += `<option value="${e.idEstadoCuenta}">${e.nombreEstadoCuenta}</option>`);
+        catalogos.estadosCuenta.forEach(e => 
+            selectEstadoCta.innerHTML += `<option value="${e.nombre}">${e.nombre}</option>`
+        );
     }
+
     const selectEstadoPark = document.getElementById('estadoParqueadero');
     if (selectEstadoPark) {
         selectEstadoPark.innerHTML = '<option value="">Seleccionar...</option>';
-        catalogos.estados.forEach(e => selectEstadoPark.innerHTML += `<option value="${e.idEstado}">${e.nombreEstado}</option>`);
+        catalogos.estados.forEach(e => 
+            selectEstadoPark.innerHTML += `<option value="${e.nombre}">${e.nombre}</option>`
+        );
     }
+
     const selectEstadoSalon = document.getElementById('estadoSalon');
     if (selectEstadoSalon) {
         selectEstadoSalon.innerHTML = '<option value="">Seleccionar...</option>';
-        catalogos.estados.forEach(e => selectEstadoSalon.innerHTML += `<option value="${e.idEstado}">${e.nombreEstado}</option>`);
+        catalogos.estados.forEach(e => 
+            selectEstadoSalon.innerHTML += `<option value="${e.nombre}">${e.nombre}</option>`
+        );
     }
+
     const selectTipoDocUsr = document.getElementById('tipoDocumentoUsuario');
     if (selectTipoDocUsr) {
         selectTipoDocUsr.innerHTML = '<option value="">Seleccionar...</option>';
-        catalogos.tiposDocumento.forEach(t => selectTipoDocUsr.innerHTML += `<option value="${t.idTipoDocumento}">${t.nombreTipoDocumento}</option>`);
+        catalogos.tiposDocumento.forEach(t => 
+            selectTipoDocUsr.innerHTML += `<option value="${t.nombre}">${t.nombre}</option>`
+        );
     }
+
     const selectRol = document.getElementById('rolUsuario');
     if (selectRol) {
         selectRol.innerHTML = '<option value="">Seleccionar...</option>';
-        catalogos.roles.forEach(r => selectRol.innerHTML += `<option value="${r.idRol}">${r.nombreRol}</option>`);
+        catalogos.roles.forEach(r => 
+            selectRol.innerHTML += `<option value="${r.nombre}">${r.nombre}</option>`
+        );
     }
+
     const selectTipoDocRes = document.getElementById('tipoDocumentoResidente');
     if (selectTipoDocRes) {
         selectTipoDocRes.innerHTML = '<option value="">Seleccionar...</option>';
-        catalogos.tiposDocumento.forEach(t => selectTipoDocRes.innerHTML += `<option value="${t.idTipoDocumento}">${t.nombreTipoDocumento}</option>`);
+        catalogos.tiposDocumento.forEach(t => 
+            selectTipoDocRes.innerHTML += `<option value="${t.nombre}">${t.nombre}</option>`
+        );
     }
+
     const selectTipoRes = document.getElementById('tipoResidente');
     if (selectTipoRes) {
         selectTipoRes.innerHTML = '<option value="">Seleccionar...</option>';
-        const idsVistos = new Set();
-        catalogos.tiposResidente.filter(t => { if (idsVistos.has(t.idTipoResidente)) return false; idsVistos.add(t.idTipoResidente); return true; })
-            .forEach(t => selectTipoRes.innerHTML += `<option value="${t.idTipoResidente}">${t.nombreTipoResidente}</option>`);
+        catalogos.tiposResidente.forEach(t => 
+            selectTipoRes.innerHTML += `<option value="${t.nombre}">${t.nombre}</option>`
+        );
     }
 }
 
@@ -227,8 +248,8 @@ function mostrarApartamentos(apartamentos) {
         return;
     }
     apartamentos.forEach(apt => {
-        const tipoOcup = apt.tipoOcupacion?.nombre || 'N/A';
-        const estadoCta = apt.estadoCuenta?.nombre || 'N/A';
+        const tipoOcup = apt.tipoOcupacion || 'N/A';
+        const estadoCta = apt.estadoCuenta || 'N/A';
         const statusClass = estadoCta.toLowerCase().includes('día') ? 'from-emerald-500 to-teal-400' : 'from-red-600 to-orange-600';
         tbody.innerHTML += `<tr>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-sm font-semibold">${apt.numero}</p></td>
@@ -295,8 +316,13 @@ async function submitApartamento(event) {
     
     if (hayErrores) return false;
 
-    const data = { numero, idTipoOcupacion: parseInt(document.getElementById('tipoOcupacion').value), idEstadoCuenta: parseInt(document.getElementById('estadoCuenta').value), medidas, telefono: parseInt(telefono) };
-    if (currentEditNumber) data.numeroActual = currentEditNumber;
+    const data = { 
+    numero, 
+    tipoOcupacion: document.getElementById('tipoOcupacion').value,
+    estadoCuenta: document.getElementById('estadoCuenta').value,
+    medidas, 
+    telefono: parseInt(telefono) 
+    };
 
     try {
         const url = currentEditNumber ? '/api/apartamentos/actualizar' : '/api/apartamentos/crear';
@@ -322,7 +348,7 @@ function mostrarParqueaderos(parqueaderos) {
     const tbody = document.getElementById('parqueaderosTableBody');
     tbody.innerHTML = parqueaderos.length === 0 ? '<tr><td colspan="5" class="p-8 text-center">No se encontraron parqueaderos</td></tr>' : '';
     parqueaderos.forEach(p => {
-        const estado = p.estado?.nombre || 'N/A';
+        const estado = p.estado || 'N/A';
         const statusClass = estado === 'Disponible' ? 'from-emerald-500 to-teal-400' : 'from-red-600 to-orange-600';
         tbody.innerHTML += `<tr>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-sm font-semibold">${p.numero}</p></td>
@@ -357,7 +383,7 @@ async function editParqueadero(numero) {
         currentEditNumber = numero;
         document.getElementById('parqueaderoModalTitle').textContent = 'Editar Parqueadero';
         document.getElementById('numeroParqueadero').value = p.numero;
-        document.getElementById('estadoParqueadero').value = p.estado?.id || '';
+        document.getElementById('estadoParqueadero').value = p.estado?.nombre || '';
         document.getElementById('medidasParqueadero').value = p.medidas;
         document.getElementById('telefonoParqueadero').value = p.telefono;
         document.getElementById('parqueaderoModal').classList.add('show');
@@ -392,7 +418,7 @@ async function submitParqueadero(event) {
 
     const data = {
         numero: document.getElementById('numeroParqueadero').value,
-        idEstado: parseInt(document.getElementById('estadoParqueadero').value),
+        estado: document.getElementById('estadoParqueadero').value,
         medidas: medidas,
         telefono: parseInt(telefono)
     };
@@ -427,7 +453,7 @@ function mostrarSalones(salones) {
     const tbody = document.getElementById('salonesTableBody');
     tbody.innerHTML = salones.length === 0 ? '<tr><td colspan="5" class="p-8 text-center">No se encontraron salones</td></tr>' : '';
     salones.forEach(s => {
-        const estado = s.estado?.nombre || 'N/A';
+        const estado = s.nombreEstado || 'N/A';
         const statusClass = estado === 'Disponible' ? 'from-emerald-500 to-teal-400' : 'from-red-600 to-orange-600';
         tbody.innerHTML += `<tr>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-sm font-semibold">${s.numero}</p></td>
@@ -462,7 +488,7 @@ async function editSalon(numero) {
         currentEditNumber = numero;
         document.getElementById('salonModalTitle').textContent = 'Editar Salón';
         document.getElementById('numeroSalon').value = s.numero;
-        document.getElementById('estadoSalon').value = s.estado?.id || '';
+        document.getElementById('estadoSalon').value = s.estado?.nombre || '';
         document.getElementById('medidasSalon').value = s.medidas;
         document.getElementById('telefonoSalon').value = s.telefono;
         document.getElementById('salonModal').classList.add('show');
@@ -497,7 +523,7 @@ async function submitSalon(event) {
 
     const data = {
         numero: document.getElementById('numeroSalon').value,
-        idEstado: parseInt(document.getElementById('estadoSalon').value),
+        nombreEstado: document.getElementById('estadoSalon').value,
         medidas: medidas,
         telefono: parseInt(telefono)
     };
@@ -533,12 +559,12 @@ function mostrarUsuarios(usuarios) {
     tbody.innerHTML = usuarios.length === 0 ? '<tr><td colspan="7" class="p-8 text-center">No se encontraron usuarios</td></tr>' : '';
     usuarios.forEach(u => {
         tbody.innerHTML += `<tr>
-            <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs font-semibold">${u.tipoDocumento?.nombre || 'N/A'}</p></td>
+            <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs font-semibold">${u.nombreTipoDocumento || 'N/A'}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${u.numeroDocumento}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${u.nombre}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${u.apellido}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${u.correo}</p></td>
-            <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${u.rol?.nombre || 'N/A'}</p></td>
+            <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${u.nombreRol || 'N/A'}</p></td>
             <td class="p-2 text-center align-middle bg-transparent border-b">
                 <button onclick="editUsuario('${u.numeroDocumento}')" class="text-xs font-semibold text-blue-500 hover:text-blue-700 mr-3"><i class="fas fa-edit mr-1"></i>Editar</button>
                 <button onclick="openDeleteModal('${u.numeroDocumento}', 'usuario', '${u.nombre} ${u.apellido}')" class="text-xs font-semibold text-red-500 hover:text-red-700"><i class="fas fa-trash mr-1"></i>Eliminar</button>
@@ -571,13 +597,13 @@ async function editUsuario(numeroDoc) {
         const u = await response.json();
         currentEditNumber = numeroDoc;
         document.getElementById('usuarioModalTitle').textContent = 'Editar Usuario';
-        document.getElementById('tipoDocumentoUsuario').value = u.tipoDocumento?.id || '';
+        document.getElementById('tipoDocumentoUsuario').value = u.nombreTipoDocumento || '';
         document.getElementById('numeroDocumento').value = u.numeroDocumento;
         document.getElementById('numeroDocumento').readOnly = true;
         document.getElementById('nombresUsuario').value = u.nombre;
         document.getElementById('apellidosUsuario').value = u.apellido;
         document.getElementById('correoUsuario').value = u.correo;
-        document.getElementById('rolUsuario').value = u.rol?.id || '';
+        document.getElementById('rolUsuario').value = u.nombreRol || '';
         document.getElementById('passwordFields').style.display = 'none';
         document.getElementById('confirmPasswordFields').style.display = 'none';
         document.getElementById('contrasenaUsuario').required = false;
@@ -596,56 +622,86 @@ function closeUsuarioModal() {
 
 async function submitUsuario(event) {
     event.preventDefault();
+
     const numeroDoc = document.getElementById('numeroDocumento').value;
     const correo = document.getElementById('correoUsuario').value;
     let hayErrores = false;
 
-    // Validar documento (mínimo 6 dígitos)
     if (!/^\d{8,}$/.test(numeroDoc)) {
-    document.getElementById('numeroDocumentoError').textContent = 'El documento debe tener al menos 8 dígitos numéricos';
+        document.getElementById('numeroDocumentoError').textContent =
+            'El documento debe tener al menos 8 dígitos numéricos';
         hayErrores = true;
-    } else { document.getElementById('numeroDocumentoError').textContent = ''; }
+    } else {
+        document.getElementById('numeroDocumentoError').textContent = '';
+    }
 
-    // Validar correo
     const regexCorreo = /^[a-zA-Z0-9._%+-]+@(gmail\.com|hotmail\.com|outlook\.com|yahoo\.com|live\.com|icloud\.com|protonmail\.com|mail\.com)$/i;
-    if (!regexCorreo.test(correo)) {
-        document.getElementById('correoUsuarioError').textContent = 'Ingrese un correo válido (gmail, hotmail, outlook, yahoo, etc.)';
-        hayErrores = true;
-    } else { document.getElementById('correoUsuarioError').textContent = ''; }
 
-    // Validar contraseñas solo si es nuevo usuario
+    if (!regexCorreo.test(correo)) {
+        document.getElementById('correoUsuarioError').textContent =
+            'Ingrese un correo válido';
+        hayErrores = true;
+    } else {
+        document.getElementById('correoUsuarioError').textContent = '';
+    }
+
     if (document.getElementById('passwordFields').style.display !== 'none') {
         const password = document.getElementById('contrasenaUsuario').value;
         const confirmPassword = document.getElementById('repetirContrasena').value;
+
         if (password.length < 6) {
-            document.getElementById('contrasenaError').textContent = 'La contraseña debe tener al menos 6 caracteres';
+            document.getElementById('contrasenaError').textContent =
+                'La contraseña debe tener al menos 6 caracteres';
             hayErrores = true;
         } else if (password !== confirmPassword) {
-            document.getElementById('contrasenaError').textContent = 'Las contraseñas no coinciden';
+            document.getElementById('contrasenaError').textContent =
+                'Las contraseñas no coinciden';
             hayErrores = true;
-        } else { document.getElementById('contrasenaError').textContent = ''; }
+        } else {
+            document.getElementById('contrasenaError').textContent = '';
+        }
     }
 
     if (hayErrores) return false;
 
     const data = {
-        idTipoDocumento: parseInt(document.getElementById('tipoDocumentoUsuario').value),
-        numeroDocumento: numeroDoc,
-        nombre: document.getElementById('nombresUsuario').value,
-        apellido: document.getElementById('apellidosUsuario').value,
-        correo: correo,
-        idRol: parseInt(document.getElementById('rolUsuario').value)
-    };
-    if (!currentEditNumber) data.contrasena = document.getElementById('contrasenaUsuario').value;
+    nombreTipoDocumento: document.getElementById('tipoDocumentoUsuario').value,
+    numeroDocumento: numeroDoc,
+    nombre: document.getElementById('nombresUsuario').value,
+    apellido: document.getElementById('apellidosUsuario').value,
+    correo: correo,
+    nombreRol: document.getElementById('rolUsuario').value
+};
+
+if (!currentEditNumber) {
+    data.contrasena = document.getElementById('contrasenaUsuario').value;
+}
+
+    if (!currentEditNumber) {
+        data.contrasena = document.getElementById('contrasenaUsuario').value;
+    }
 
     try {
-        const url = currentEditNumber ? `/api/usuarios/actualizar/${currentEditNumber}` : '/api/usuarios/crear';
-        const response = await fetch(url, { method: currentEditNumber ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
+        const url = currentEditNumber
+            ? `/api/usuarios/actualizar/${currentEditNumber}`
+            : '/api/usuarios/crear';
+
+        const response = await fetch(url, {
+            method: currentEditNumber ? 'PUT' : 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+        });
+
         if (!response.ok) throw new Error(await response.text());
+
         alert(await response.text());
         closeUsuarioModal();
         await cargarUsuarios();
-    } catch (error) { alert('Error: ' + error.message); }
+
+    } catch (error) {
+        alert('Error: ' + error.message);
+    }
+
     return false;
 }
 
@@ -662,12 +718,12 @@ function mostrarResidentes(residentes) {
     const tbody = document.getElementById('residentesTableBody');
     tbody.innerHTML = residentes.length === 0 ? '<tr><td colspan="7" class="p-8 text-center">No se encontraron residentes</td></tr>' : '';
     residentes.forEach(r => {
-        const tipoRes = r.tipoResidente?.nombre || 'N/A';
+        const tipoRes = r.nombreTipoResidente || 'N/A';
         let tipoClass = 'from-green-600 to-emerald-500';
         if (tipoRes === 'Arrendatario') tipoClass = 'from-orange-500 to-yellow-500';
         else if (tipoRes === 'Visitante') tipoClass = 'from-blue-500 to-cyan-500';
         tbody.innerHTML += `<tr>
-            <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs font-semibold">${r.tipoDocumento?.nombre || 'N/A'}</p></td>
+            <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs font-semibold">${r.nombreTipoDocumento || 'N/A'}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${r.numeroDocumento}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${r.nombre}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${r.apellido}</p></td>
@@ -701,13 +757,13 @@ async function editResidente(numeroDoc) {
         const r = await response.json();
         currentEditNumber = numeroDoc;
         document.getElementById('residenteModalTitle').textContent = 'Editar Residente';
-        document.getElementById('tipoDocumentoResidente').value = r.tipoDocumento?.id || '';
+        document.getElementById('tipoDocumentoResidente').value = r.nombreTipoDocumento || '';
         document.getElementById('documentoResidente').value = r.numeroDocumento;
         document.getElementById('documentoResidente').readOnly = true;
         document.getElementById('nombreResidente').value = r.nombre;
         document.getElementById('apellidoResidente').value = r.apellido;
         document.getElementById('celularResidente').value = r.celular;
-        document.getElementById('tipoResidente').value = r.tipoResidente?.id || '';
+        document.getElementById('tipoResidente').value = r.nombreTipoResidente || '';
         ['documentoResidenteError','celularResidenteError'].forEach(id => { const s = document.getElementById(id); if(s) s.textContent = ''; });
         document.getElementById('residenteModal').classList.add('show');
     } catch (error) { alert('Error al cargar el residente'); }
@@ -740,14 +796,13 @@ async function submitResidente(event) {
     if (hayErrores) return false;
 
     const data = {
-        idTipoDocumento: parseInt(document.getElementById('tipoDocumentoResidente').value),
+        nombreTipoDocumento: document.getElementById('tipoDocumentoResidente').value,
         numeroDocumento: parseInt(documento),
         nombre: document.getElementById('nombreResidente').value,
         apellido: document.getElementById('apellidoResidente').value,
         celular: parseInt(celular),
-        idTipoResidente: parseInt(document.getElementById('tipoResidente').value)
+        nombreTipoResidente: document.getElementById('tipoResidente').value
     };
-
     try {
         const url = currentEditNumber ? `/api/residentes/actualizar/${currentEditNumber}` : '/api/residentes/crear';
         const response = await fetch(url, { method: currentEditNumber ? 'PUT' : 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });

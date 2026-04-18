@@ -157,48 +157,21 @@ async function validarDocumentoVisitante(documento) {
         const numeroDocumento = parseInt(documento);
         const response = await fetch(`/api/residentes/${numeroDocumento}`);
         
-        if (!response.ok) {
-            console.log('Respuesta no OK:', response.status);
-            return false;
-        }
+        if (!response.ok) return false;
         
         const residente = await response.json();
-        console.log('✅ Datos completos del residente:', JSON.stringify(residente, null, 2));
+        if (!residente) return false;
         
-        if (!residente) {
-            console.log('❌ No hay residente');
-            return false;
-        }
+        // ✅ nombreTipoResidente es el campo correcto
+        const tipoNombre = residente.nombreTipoResidente || 
+                           residente.tipoResidente?.nombre || 
+                           residente.tipo_residente || 
+                           '';
         
-        let tipoNombre = null;
+        return tipoNombre.toString().toLowerCase().trim().includes('visitante');
         
-        if (residente.tipoResidente && residente.tipoResidente.nombre) {
-            tipoNombre = residente.tipoResidente.nombre;
-            console.log('✅ Tipo encontrado en tipoResidente.nombre:', tipoNombre);
-        } else if (residente.tipo_residente) {
-            tipoNombre = typeof residente.tipo_residente === 'string' 
-                ? residente.tipo_residente 
-                : residente.tipo_residente.nombre;
-            console.log('✅ Tipo encontrado en tipo_residente:', tipoNombre);
-        } else if (typeof residente.tipoResidente === 'string') {
-            tipoNombre = residente.tipoResidente;
-            console.log('✅ Tipo encontrado directo en tipoResidente:', tipoNombre);
-        }
-        
-        if (!tipoNombre) {
-            console.log('❌ No se pudo extraer el tipo de residente');
-            console.log('Estructura recibida:', Object.keys(residente));
-            return false;
-        }
-        
-        const nombreLower = tipoNombre.toString().toLowerCase().trim();
-        const esVisitante = nombreLower.includes('visitante');
-        
-        console.log(`${esVisitante ? '✅' : '❌'} ¿Es visitante? "${tipoNombre}" -> ${esVisitante}`);
-        
-        return esVisitante;
     } catch (error) {
-        console.error('❌ Error al validar documento visitante:', error);
+        console.error('Error al validar documento visitante:', error);
         return false;
     }
 }
@@ -206,24 +179,24 @@ async function validarDocumentoVisitante(documento) {
 async function validarDocumentoResidente(documento) {
     try {
         const numeroDocumento = parseInt(documento);
-        let response = await fetch(`/api/residentes/${numeroDocumento}`);
+        const response = await fetch(`/api/residentes/${numeroDocumento}`);
         
         if (response.ok) {
             const residente = await response.json();
             if (residente) {
-                const tipoNombre = residente.tipoResidente?.nombre;
-                const esResidente = tipoNombre && !tipoNombre.toString().toLowerCase().includes('visitante');
-                if (esResidente) return true;
+                const tipoNombre = residente.nombreTipoResidente || 
+                                   residente.tipoResidente?.nombre || '';
+                // Es residente si existe y NO es visitante
+                const esVisitante = tipoNombre.toLowerCase().includes('visitante');
+                if (!esVisitante) return true;
             }
         }
         
-        response = await fetch(`/api/usuarios/${documento}`);
-        
-        if (response.ok) {
-            const usuario = await response.json();
-            if (usuario) {
-                return true;
-            }
+        // También verificar si es usuario del sistema
+        const responseUsr = await fetch(`/api/usuarios/${documento}`);
+        if (responseUsr.ok) {
+            const usuario = await responseUsr.json();
+            if (usuario) return true;
         }
         
         return false;
@@ -531,12 +504,10 @@ async function eliminarAccesoPiscina(id) {
     }
 }
 
-// Render functions
+
 function renderVisitantesConVehiculo() {
     const tbody = document.getElementById('visitantesVehiculoTableBody');
     tbody.innerHTML = '';
-    
-    console.log('Renderizando visitantes con vehículo, total:', visitantesConVehiculo.length);
     
     if (!visitantesConVehiculo || visitantesConVehiculo.length === 0) {
         tbody.innerHTML = `
@@ -550,12 +521,12 @@ function renderVisitantesConVehiculo() {
     }
     
     visitantesConVehiculo.forEach(v => {
-        console.log('Procesando visitante:', v);
+        // ✅ Usar v.id que es el ID real del registro
         const doc = v.numeroDocumento || 'N/A';
         const apto = v.numeroApartamento || 'N/A';
         const fechaEntrada = v.fechaHoraEntrada;
         const fechaSalida = v.fechaHoraSalida;
-        const parqueaderoId = v.parqueaderoId;
+        const id = v.id; // ✅ CORREGIDO
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -572,12 +543,13 @@ function renderVisitantesConVehiculo() {
                 <p class="px-6 mb-0 text-xs">${formatFecha(fechaEntrada)}</p>
             </td>
             <td class="p-2 align-middle bg-transparent border-b">
-                <p class="px-6 mb-0 text-xs">${formatFecha(fechaSalida)}</p>
+                <p class="px-6 mb-0 text-xs">${fechaSalida ? formatFecha(fechaSalida) : '-'}</p>
             </td>
             <td class="p-2 text-center align-middle bg-transparent border-b">
                 ${fechaSalida ? 
                     '<span class="text-xs text-slate-400">Finalizado</span>' : 
-                    `<button onclick="openSalidaModal(${parqueaderoId}, 'vehiculo', '${doc}')" class="text-xs font-semibold text-emerald-500 hover:text-emerald-700 mr-2">
+                    `<button onclick="openSalidaModal('${id}', 'vehiculo', '${doc}')" 
+                        class="text-xs font-semibold text-emerald-500 hover:text-emerald-700 mr-2">
                         <i class="fas fa-sign-out-alt mr-1"></i>Registrar Salida
                     </button>`
                 }
@@ -591,8 +563,6 @@ function renderVisitantesSinVehiculo() {
     const tbody = document.getElementById('visitantesSinVehiculoTableBody');
     tbody.innerHTML = '';
     
-    console.log('Renderizando visitantes sin vehículo, total:', visitantesSinVehiculo.length);
-    
     if (!visitantesSinVehiculo || visitantesSinVehiculo.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -605,13 +575,11 @@ function renderVisitantesSinVehiculo() {
     }
     
     visitantesSinVehiculo.forEach(v => {
-        console.log('Procesando visitante:', v);
-        const doc = v.numero_documento || 'N/A';
-        const apto = v.numero_apartamento || 'N/A';
-        const fechaEntrada = v.fecha_hora_entrada;
-        const fechaSalida = v.fecha_hora_salida;
-        const residenteId = v.residenteId;
-        const apartamentoId = v.apartamentoId;
+        const doc = v.numeroDocumento || v.numero_documento || 'N/A';
+        const apto = v.numeroApartamento || v.numero_apartamento || v.idApartamento || 'N/A';
+        const fechaEntrada = v.fechaHoraEntrada || v.fecha_hora_entrada;
+        const fechaSalida = v.fechaHoraSalida || v.fecha_hora_salida;
+        const id = v.id;
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -625,12 +593,12 @@ function renderVisitantesSinVehiculo() {
                 <p class="px-6 mb-0 text-xs">${formatFecha(fechaEntrada)}</p>
             </td>
             <td class="p-2 align-middle bg-transparent border-b">
-                <p class="px-6 mb-0 text-xs">${formatFecha(fechaSalida)}</p>
+                <p class="px-6 mb-0 text-xs">${fechaSalida ? formatFecha(fechaSalida) : '-'}</p>
             </td>
             <td class="p-2 text-center align-middle bg-transparent border-b">
                 ${fechaSalida ? 
                     '<span class="text-xs text-slate-400">Finalizado</span>' : 
-                    `<button onclick="openSalidaModal('${residenteId}/${apartamentoId}', 'sinvehiculo', '${doc}')" class="text-xs font-semibold text-emerald-500 hover:text-emerald-700">
+                    `<button onclick="openSalidaModal('${id}', 'sinvehiculo', '${doc}')" class="text-xs font-semibold text-emerald-500 hover:text-emerald-700">
                         <i class="fas fa-sign-out-alt mr-1"></i>Registrar Salida
                     </button>`
                 }
@@ -644,8 +612,6 @@ function renderHistorialPiscina() {
     const tbody = document.getElementById('historialPiscinaBody');
     tbody.innerHTML = '';
     
-    console.log('Renderizando piscina, total registros:', accesosPiscina.length);
-    
     if (!accesosPiscina || accesosPiscina.length === 0) {
         tbody.innerHTML = `
             <tr>
@@ -658,11 +624,11 @@ function renderHistorialPiscina() {
     }
     
     accesosPiscina.forEach(acceso => {
-        console.log('Procesando acceso:', acceso);
-        const doc = acceso.numero_documento || 'N/A';
-        const apto = acceso.numero_apartamento || 'N/A';
-        const fecha = acceso.fecha_hora;
-        const id = acceso.id_acceso_piscina;
+        // ✅ camelCase igual que los otros endpoints
+        const doc = acceso.numeroDocumento || acceso.numero_documento || 'N/A';
+        const apto = acceso.numeroApartamento || acceso.numero_apartamento || 'N/A';
+        const fecha = acceso.fechaHora || acceso.fecha_hora;
+        const id = acceso.id || acceso.id_acceso_piscina;
         
         const row = document.createElement('tr');
         row.innerHTML = `
@@ -676,10 +642,12 @@ function renderHistorialPiscina() {
                 <p class="px-6 mb-0 text-xs">${formatFecha(fecha)}</p>
             </td>
             <td class="p-2 text-center align-middle bg-transparent border-b">
-                <button onclick="openModificarPiscinaModal(${id}, '${doc}', '${apto}')" class="text-xs font-semibold text-blue-500 hover:text-blue-700 mr-3">
+                <button onclick="openModificarPiscinaModal('${id}', '${doc}', '${apto}')" 
+                    class="text-xs font-semibold text-blue-500 hover:text-blue-700 mr-3">
                     <i class="fas fa-edit mr-1"></i>Modificar
                 </button>
-                <button onclick="eliminarAccesoPiscina(${id})" class="text-xs font-semibold text-red-500 hover:text-red-700">
+                <button onclick="eliminarAccesoPiscina('${id}')" 
+                    class="text-xs font-semibold text-red-500 hover:text-red-700">
                     <i class="fas fa-trash mr-1"></i>Eliminar
                 </button>
             </td>
