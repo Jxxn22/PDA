@@ -151,7 +151,7 @@ public class SecurityConfig {
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout=true")
                 .invalidateHttpSession(true)
-                .deleteCookies("JSESSIONID")
+                .deleteCookies("GESCAZONE-SESSION", "GESCAZONE-REMEMBER")
                 .clearAuthentication(true)
                 .permitAll()
             )
