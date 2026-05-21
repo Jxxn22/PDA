@@ -83,6 +83,18 @@ public class OAuth2ActionController {
             session.setAttribute("oauth2DatosPendientes", datos);
         }
 
+        // FIX Bug 2: guardar el Authentication actual (form login) antes de
+        // iniciar el flujo OAuth2. Spring Security reemplazará este Authentication
+        // con el OidcUser de Google durante el flujo; oauth2SuccessHandler en
+        // SecurityConfig lo restaurará al regresar para que el usuario mantenga
+        // su rol real (ADMINISTRADOR, PROPIETARIO, etc.).
+        org.springframework.security.core.Authentication authActual =
+                org.springframework.security.core.context.SecurityContextHolder
+                        .getContext().getAuthentication();
+        if (authActual != null && authActual.isAuthenticated()) {
+            session.setAttribute("authOriginalAntesDeOAuth2", authActual);
+        }
+
         // Spring Security arranca el flujo OAuth2 con Google
         return "redirect:/oauth2/authorization/google";
     }

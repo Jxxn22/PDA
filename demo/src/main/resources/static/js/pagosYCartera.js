@@ -236,7 +236,13 @@ function confirmarCerrarSesion(event) {
     event.preventDefault();
     if (confirm('¿Está seguro que desea cerrar sesión?')) {
         sessionStorage.clear();
-        window.location.href = '/logout';
+        // FIX: Spring Security 6 requiere POST para logout.
+        // Un GET a /logout es rechazado (CSRF) y deja al usuario en la página de error.
+        const form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/logout';
+        document.body.appendChild(form);
+        form.submit();
     }
     return false;
 }

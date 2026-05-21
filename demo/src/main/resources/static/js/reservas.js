@@ -165,7 +165,7 @@ function mostrarReservas(reservas) {
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${reserva.salon.numero}</p></td>
             <td class="p-2 align-middle bg-transparent border-b"><p class="px-6 mb-0 text-xs">${fechaFormateada}</p></td>
             <td class="p-2 text-center align-middle bg-transparent border-b">
-                <button onclick="openDeleteModal(${reserva.idReserva}, 'Reserva #${reserva.idReserva}')" class="text-xs font-semibold text-red-500 hover:text-red-700">
+                <button onclick="openDeleteModal('${reserva.idReserva}', 'Reserva #${reserva.idReserva}')" class="text-xs font-semibold text-red-500 hover:text-red-700">
                     <i class="fas fa-trash mr-1"></i>Eliminar
                 </button>
             </td>`;

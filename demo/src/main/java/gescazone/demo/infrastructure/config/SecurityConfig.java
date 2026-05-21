@@ -21,58 +21,17 @@ import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.session.HttpSessionEventPublisher;
 
-/**
- * Configuración central de seguridad.
- *
- * ──────────────────────────────────────────────────────────────────────────────
- * ARQUITECTURA DE AUTENTICACIÓN
- * ──────────────────────────────────────────────────────────────────────────────
- *
- * Login del sistema → SOLO usuario/contraseña (form login).
- *   Google OAuth2 NO aparece en el login; los propietarios y funcionarios
- *   acceden exclusivamente con su número de documento y contraseña.
- *
- * Google OAuth2 → se usa SOLO para verificar identidad en 2 acciones internas:
- *   1. Agregar método de pago   (/pagosYCartera → botón "Agregar Método")
- *   2. Confirmar reserva de salón (/reservas    → botón "Confirmar Reserva")
- *
- *   Flujo:
- *     JS guarda datos pendientes en sesión
- *     → redirige a /oauth2/authorization/google?accion=PAGO|RESERVA
- *     → Google autentica
- *     → callback a /oauth2/callback/accion   (OAuth2ActionController)
- *     → el controller valida que el correo de Google coincida con session.usuarioLogueado
- *     → ejecuta la acción y redirige de vuelta con ?oauth=ok
- *
- * ──────────────────────────────────────────────────────────────────────────────
- * CSRF
- * ──────────────────────────────────────────────────────────────────────────────
- *   /api/** exento (clientes REST manejan sus propios tokens).
- *   /oauth2/** exento (Spring Security lo gestiona internamente).
- *
- * ──────────────────────────────────────────────────────────────────────────────
- * SESIONES
- * ──────────────────────────────────────────────────────────────────────────────
- *   Máximo 1 sesión activa por usuario.
- *   HttpSessionOAuth2AuthorizationRequestRepository asegura que el state/nonce
- *   de OAuth2 sobreviva el redirect cross-site a Google y de vuelta.
- *
- * ──────────────────────────────────────────────────────────────────────────────
- * JWT
- * ──────────────────────────────────────────────────────────────────────────────
- *   JwtAuthenticationFilter actúa SOLO sobre /api/**.
- *   Las vistas MVC usan sesión HTTP normal.
- */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
+// FIX: securedEnabled = false para evitar que @Secured en controllers
+// entre en conflicto con las reglas de authorizeHttpRequests.
+// Solo se usa prePostEnabled para @PreAuthorize donde sea estrictamente necesario.
+@EnableMethodSecurity(prePostEnabled = true, securedEnabled = false)
 public class SecurityConfig {
 
     @Autowired private CustomUserDetailsService customUserDetailsService;
     @Autowired private CustomOAuth2UserService  oAuth2UserService;
     @Autowired private JwtAuthenticationFilter  jwtFilter;
-
-    // ── Beans de infraestructura ──────────────────────────────────────────────
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -97,78 +56,99 @@ public class SecurityConfig {
         return config.getAuthenticationManager();
     }
 
-    // ── Cadena de filtros principal ───────────────────────────────────────────
-
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
 
         http
-            // ── Proveedor de autenticación ────────────────────────────────────
             .authenticationProvider(authenticationProvider())
-
-            // ── Filtro JWT (solo /api/**) ─────────────────────────────────────
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class)
 
-            // ── Autorización por rutas ────────────────────────────────────────
             .authorizeHttpRequests(auth -> auth
 
-                // Públicas — incluye /logout para que Spring Security
-                // pueda procesarlo aunque la sesión haya expirado
+                // ── 1. Rutas públicas ─────────────────────────────────────────
                 .requestMatchers(
                     "/login", "/registro", "/logout",
                     "/css/**", "/js/**", "/img/**", "/fonts/**",
                     "/favicon.ico", "/error"
                 ).permitAll()
 
-                // OAuth2: authorize y callback son accesibles solo para usuarios
-                // ya autenticados con sesión activa (form login previo).
-                // Spring Security requiere que estas rutas sean accesibles
-                // durante el flujo OAuth2; la validación de sesión activa la
-                // hace OAuth2ActionController antes de ejecutar la acción.
-                .requestMatchers(
-                    "/oauth2/**",
-                    "/login/oauth2/**"
-                ).permitAll()
+                // ── 2. OAuth2 interno (necesario para el flujo Google) ────────
+                .requestMatchers("/oauth2/**", "/login/oauth2/**").permitAll()
 
-                // Acceso general autenticado
-                .requestMatchers("/inicio")
+                // ── 3. Vistas MVC — reglas específicas primero ────────────────
+                // IMPORTANTE: los patrones más específicos SIEMPRE antes que los
+                // generales. Spring evalúa en orden y para en el primer match.
+
+                // Solo administrador
+                .requestMatchers("/gestionDeDatos")
+                    .hasRole("ADMINISTRADOR")
+
+                // Administrador + propietario
+                .requestMatchers("/pagosYCartera")
+                    .hasAnyRole("ADMINISTRADOR", "PROPIETARIO")
+
+                // Administrador + funcionario
+                .requestMatchers("/controlDeAccesos")
+                    .hasAnyRole("ADMINISTRADOR", "FUNCIONARIO")
+
+                // Todos los autenticados
+                .requestMatchers("/inicio", "/reservas")
                     .hasAnyRole("ADMINISTRADOR", "PROPIETARIO", "FUNCIONARIO")
 
-                // Solo administrador — gestión completa (escritura)
+                // ── 4. API REST — escritura (solo admin), específicos primero ──
                 .requestMatchers(
-                    "/gestionDeDatos",
-                    "/api/apartamentos/**", "/api/parqueaderos/**",
-                    "/api/residentes/**",
-                    // Escritura de salones y usuarios: solo admin
-                    "/api/salones/crear", "/api/salones/actualizar/**",
-                    "/api/salones/eliminar/**", "/api/salones/cambiar-estado",
-                    "/api/usuarios/crear", "/api/usuarios/actualizar/**",
-                    "/api/usuarios/eliminar/**", "/api/usuarios/todos",
+                    "/api/apartamentos/**",
+                    "/api/parqueaderos/**",
+                    "/api/residentes/**"
+                ).hasRole("ADMINISTRADOR")
+
+                // Escritura de salones — solo admin
+                .requestMatchers(
+                    "/api/salones/crear",
+                    "/api/salones/actualizar/**",
+                    "/api/salones/eliminar/**",
+                    "/api/salones/cambiar-estado"
+                ).hasRole("ADMINISTRADOR")
+
+                // Escritura de usuarios — solo admin
+                .requestMatchers(
+                    "/api/usuarios/crear",
+                    "/api/usuarios/actualizar/**",
+                    "/api/usuarios/eliminar/**",
+                    "/api/usuarios/todos",
                     "/api/usuarios/cambiar-contrasena"
                 ).hasRole("ADMINISTRADOR")
 
-                // Lectura de salones y usuarios: necesaria para validar el
-                // formulario de reservas (todos los roles autenticados)
+                // Lectura de salones y usuarios — todos (necesario para reservas)
                 .requestMatchers("/api/salones/**", "/api/usuarios/**")
                     .hasAnyRole("ADMINISTRADOR", "PROPIETARIO", "FUNCIONARIO")
 
-                // Administrador y propietario
-                .requestMatchers("/pagosYCartera", "/api/pagos/**")
+                // Pagos — admin y propietario
+                .requestMatchers("/api/pagos/**", "/api/metodos-pago/**")
                     .hasAnyRole("ADMINISTRADOR", "PROPIETARIO")
 
-                // Administrador y funcionario
-                .requestMatchers("/controlDeAccesos", "/api/accesos/**")
+                // Accesos — admin y funcionario
+                .requestMatchers("/api/accesos/**")
                     .hasAnyRole("ADMINISTRADOR", "FUNCIONARIO")
 
-                // Reservas: todos los roles autenticados pueden reservar
-                .requestMatchers("/reservas", "/api/reservas/**")
+                // Reservas API — todos los autenticados
+                // FIX DELETE: el endpoint DELETE /api/reservas/eliminar/{id}
+                // estaba siendo bloqueado por la combinación de CSRF y sesión.
+                // Al tener /api/** exento de CSRF (línea csrf más abajo) y esta
+                // regla explícita, cualquier rol autenticado puede hacer DELETE.
+                // El control fino (solo admin puede eliminar) lo hace el service.
+                .requestMatchers("/api/reservas/**")
                     .hasAnyRole("ADMINISTRADOR", "PROPIETARIO", "FUNCIONARIO")
 
-                // Cualquier otra ruta requiere autenticación
+                // OAuth2 callback interno
+                .requestMatchers("/oauth2/callback/**")
+                    .hasAnyRole("ADMINISTRADOR", "PROPIETARIO", "FUNCIONARIO")
+
+                // Cualquier otra ruta autenticada
                 .anyRequest().authenticated()
             )
 
-            // ── Form login (ÚNICO punto de entrada al sistema) ────────────────
+            // ── Form login ────────────────────────────────────────────────────
             .formLogin(form -> form
                 .loginPage("/login")
                 .loginProcessingUrl("/login")
@@ -177,31 +157,22 @@ public class SecurityConfig {
                 .permitAll()
             )
 
-            // ── OAuth2 / Google (SOLO para acciones internas, no para login) ──
-            // El loginPage apunta a /login para que Spring sepa cuál es la página
-            // de autenticación, pero NO se muestra el botón de Google en el HTML.
-            // El flujo lo inicia JS desde dentro de la app, no el usuario en /login.
+            // ── OAuth2 Google (solo para acciones internas) ───────────────────
             .oauth2Login(oauth -> oauth
                 .loginPage("/login")
-                // Persiste state/nonce en sesión HTTP entre redirect a Google y callback
                 .authorizationEndpoint(ep -> ep
                     .authorizationRequestRepository(
                         new HttpSessionOAuth2AuthorizationRequestRepository()
                     )
                 )
-                // Google usa OIDC (no OAuth2 puro), por eso oidcUserService
                 .userInfoEndpoint(ui -> ui
                     .oidcUserService(oAuth2UserService)
                 )
-                // Tras autenticar con Google → OAuth2ActionController toma el control
                 .successHandler(oauth2SuccessHandler())
                 .failureHandler(oauth2FailureHandler())
             )
 
             // ── Logout ────────────────────────────────────────────────────────
-            // FIX: el HTML usa <a href="/logout"> que genera un GET.
-            // Spring Security 6 por defecto solo acepta POST para logout (CSRF).
-            // Se exime /logout del CSRF para que funcione con GET desde los links.
             .logout(logout -> logout
                 .logoutUrl("/logout")
                 .logoutSuccessUrl("/login?logout=true")
@@ -212,18 +183,21 @@ public class SecurityConfig {
             )
 
             // ── CSRF ──────────────────────────────────────────────────────────
+            // FIX DELETE: /api/** completamente exento de CSRF.
+            // El fetch DELETE desde reservas.js no envía token CSRF y no debe
+            // necesitarlo — las APIs REST se protegen con autenticación, no CSRF.
             .csrf(csrf -> csrf
-                .ignoringRequestMatchers("/api/**", "/logout")
+                .ignoringRequestMatchers("/api/**", "/logout", "/oauth2/**")
             )
 
-            // ── Gestión de sesiones ───────────────────────────────────────────
+            // ── Sesiones ──────────────────────────────────────────────────────
             .sessionManagement(session -> session
                 .maximumSessions(1)
                 .maxSessionsPreventsLogin(false)
                 .expiredUrl("/login?error=session_expired")
             )
 
-            // ── Manejo de errores de acceso ───────────────────────────────────
+            // ── Errores de acceso ─────────────────────────────────────────────
             .exceptionHandling(ex -> ex
                 .accessDeniedHandler((request, response, e) -> {
                     request.setAttribute("codigo",  403);
@@ -236,19 +210,13 @@ public class SecurityConfig {
         return http.build();
     }
 
-    // ── Handlers: Form login ──────────────────────────────────────────────────
+    // ── Handlers ─────────────────────────────────────────────────────────────
 
-    /**
-     * Tras login exitoso con usuario/contraseña:
-     * guarda rol y nombre en sesión y redirige según rol.
-     */
     private org.springframework.security.web.authentication.AuthenticationSuccessHandler
             formSuccessHandler() {
         return (request, response, authentication) -> {
             String rolCompleto = authentication.getAuthorities().stream()
-                    .findFirst()
-                    .map(a -> a.getAuthority())
-                    .orElse("");
+                    .findFirst().map(a -> a.getAuthority()).orElse("");
 
             String rolVista = switch (rolCompleto) {
                 case "ROLE_ADMINISTRADOR" -> "Administrador";
@@ -261,16 +229,12 @@ public class SecurityConfig {
             session.setAttribute("rolUsuario",      rolVista);
             session.setAttribute("usuarioLogueado", authentication.getName());
 
-            String destino = "ROLE_FUNCIONARIO".equals(rolCompleto)
-                    ? "/controlDeAccesos"
-                    : "/inicio";
-            response.sendRedirect(destino);
+            response.sendRedirect(
+                "ROLE_FUNCIONARIO".equals(rolCompleto) ? "/controlDeAccesos" : "/inicio"
+            );
         };
     }
 
-    /**
-     * Tras login fallido con usuario/contraseña.
-     */
     private org.springframework.security.web.authentication.AuthenticationFailureHandler
             formFailureHandler() {
         return (request, response, exception) -> {
@@ -285,48 +249,47 @@ public class SecurityConfig {
         };
     }
 
-    // ── Handlers: OAuth2 / Google ─────────────────────────────────────────────
-
-    /**
-     * Tras autenticación exitosa con Google:
-     * redirige a OAuth2ActionController para ejecutar la acción pendiente.
-     * NO crea una sesión de sistema; solo verifica identidad puntualmente.
-     */
     private org.springframework.security.web.authentication.AuthenticationSuccessHandler
             oauth2SuccessHandler() {
         return (request, response, authentication) -> {
-            // El correo verificado por Google llega en el OidcUser
             OidcUser oidcUser = (OidcUser) authentication.getPrincipal();
-            String correoGoogle = oidcUser.getEmail();
-
-            // Guardarlo temporalmente en sesión para que OAuth2ActionController lo use
             HttpSession session = request.getSession(false);
             if (session != null) {
-                session.setAttribute("oauth2CorreoVerificado", correoGoogle);
-            }
+                // Guardar correo verificado para OAuth2ActionController
+                session.setAttribute("oauth2CorreoVerificado", oidcUser.getEmail());
 
-            // Delegar al controller que ejecuta la acción pendiente
+                // FIX Bug 2: restaurar la autenticación original (form login)
+                // que estaba en sesión antes de iniciar el flujo OAuth2.
+                // Sin esto, Spring reemplaza el Authentication con OidcUser
+                // (ROLE_OAUTH2_TEMP) y las rutas protegidas devuelven 403.
+                org.springframework.security.core.Authentication authOriginal =
+                        (org.springframework.security.core.Authentication)
+                        session.getAttribute("authOriginalAntesDeOAuth2");
+                if (authOriginal != null) {
+                    org.springframework.security.core.context.SecurityContextHolder
+                            .getContext().setAuthentication(authOriginal);
+                    session.setAttribute(
+                        org.springframework.security.web.context.HttpSessionSecurityContextRepository
+                            .SPRING_SECURITY_CONTEXT_KEY,
+                        org.springframework.security.core.context.SecurityContextHolder.getContext()
+                    );
+                    session.removeAttribute("authOriginalAntesDeOAuth2");
+                }
+            }
             response.sendRedirect("/oauth2/callback/accion");
         };
     }
 
-    /**
-     * Tras fallo en la autenticación con Google:
-     * redirige con error a la página que inició el flujo.
-     */
     private org.springframework.security.web.authentication.AuthenticationFailureHandler
             oauth2FailureHandler() {
         return (request, response, exception) -> {
             HttpSession session = request.getSession(false);
-            String accionPendiente = (session != null)
+            String accion = (session != null)
                     ? (String) session.getAttribute("oauth2AccionPendiente")
                     : null;
-
-            String destino = "RESERVA".equals(accionPendiente)
-                    ? "/reservas?oauth=error"
-                    : "/pagosYCartera?oauth=error";
-
-            response.sendRedirect(destino);
+            response.sendRedirect(
+                "RESERVA".equals(accion) ? "/reservas?oauth=error" : "/pagosYCartera?oauth=error"
+            );
         };
     }
 }
