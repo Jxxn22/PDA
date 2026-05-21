@@ -37,13 +37,8 @@ public class ReservaSalonSocialRestController {
     public ResponseEntity<Map<String, Object>> obtenerPorId(@PathVariable String id) {
         try {
             ReservaSalonSocialModel r = reservaService.buscarPorId(id);
-
-            if (r == null) {
-                return ResponseEntity.notFound().build();
-            }
-
+            if (r == null) return ResponseEntity.notFound().build();
             return ResponseEntity.ok(convertirAMap(r));
-
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -114,9 +109,9 @@ public class ReservaSalonSocialRestController {
     @PostMapping("/crear")
     public ResponseEntity<String> crear(@RequestBody Map<String, Object> datos) {
         try {
-            String idUsuario     = (String) datos.get("idUsuario");
-            String idSalon       = (String) datos.get("idSalon");
-            String fechaHoraStr  = (String) datos.get("fechaYHoraReserva");
+            String idUsuario    = (String) datos.get("idUsuario");
+            String idSalon      = (String) datos.get("idSalon");
+            String fechaHoraStr = (String) datos.get("fechaYHoraReserva");
 
             if (idUsuario == null || idUsuario.isBlank())
                 return ResponseEntity.badRequest().body("El ID del usuario es obligatorio");
@@ -178,12 +173,30 @@ public class ReservaSalonSocialRestController {
         }
     }
 
+    /**
+     * FIX: reservas.js espera objetos anidados, no strings planos:
+     *
+     *   reserva.idReserva                → res.getId()
+     *   reserva.usuario.numeroDocumento  → res.getIdUsuario()
+     *   reserva.salon.numero             → res.getIdSalon()
+     *   reserva.fechaYHoraReserva        → res.getFechaYHoraReserva().toString()
+     *
+     * Antes devolvía { "idUsuario": "...", "idSalon": "..." } (strings planos)
+     * → JS lanzaba "Cannot read properties of undefined (reading 'numeroDocumento')"
+     */
     private Map<String, Object> convertirAMap(ReservaSalonSocialModel res) {
+        Map<String, Object> usuario = new HashMap<>();
+        usuario.put("numeroDocumento", res.getIdUsuario());
+
+        Map<String, Object> salon = new HashMap<>();
+        salon.put("numero", res.getIdSalon());
+
         Map<String, Object> map = new HashMap<>();
-        map.put("id",               res.getId());
-        map.put("idUsuario",        res.getIdUsuario());
-        map.put("idSalon",          res.getIdSalon());
-        map.put("fechaYHoraReserva",res.getFechaYHoraReserva().toString());
+        map.put("idReserva",         res.getId());
+        map.put("usuario",           usuario);
+        map.put("salon",             salon);
+        map.put("fechaYHoraReserva", res.getFechaYHoraReserva() != null
+                ? res.getFechaYHoraReserva().toString() : null);
         return map;
     }
 }
