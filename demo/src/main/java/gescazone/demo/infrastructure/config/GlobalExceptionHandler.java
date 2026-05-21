@@ -23,7 +23,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("codigo", 403);
         model.addAttribute("mensaje", "No tienes permisos para acceder a esta sección.");
         model.addAttribute("ruta", request.getRequestURI());
-        return "error/error";
+        return "error";
     }
 
     // 404 - Página no encontrada
@@ -35,7 +35,7 @@ public class GlobalExceptionHandler {
         model.addAttribute("codigo", 404);
         model.addAttribute("mensaje", "La página que buscas no existe.");
         model.addAttribute("ruta", request.getRequestURI());
-        return "error/error";
+        return "error";
     }
 
     // 500 - Error general
@@ -55,6 +55,6 @@ public class GlobalExceptionHandler {
         model.addAttribute("codigo", 500);
         model.addAttribute("mensaje", "Ocurrió un error inesperado. Por favor intenta de nuevo.");
         model.addAttribute("ruta", request.getRequestURI());
-        return "error/error";
+        return "error";
     }
 }

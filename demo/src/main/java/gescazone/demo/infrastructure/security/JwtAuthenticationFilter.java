@@ -5,7 +5,6 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -16,6 +15,16 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
 
+/**
+ * Filtro JWT — actúa SOLO sobre rutas /api/**.
+ *
+ * Las rutas de vistas MVC usan sesión HTTP (form login).
+ * Las rutas OAuth2 (/oauth2/**, /login/oauth2/**) usan la sesión HTTP también.
+ * Por eso shouldNotFilter excluye todo lo que no sea /api/.
+ *
+ * Si hay sesión HTTP activa (form login), el filtro respeta esa autenticación
+ * y no la sobreescribe (SecurityContextHolder ya tendrá un Authentication).
+ */
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
@@ -30,72 +39,47 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                     HttpServletResponse response,
                                     FilterChain filterChain)
             throws ServletException, IOException {
-
         try {
-            // 1. Extraer el token JWT de la Cookie
             String token = extraerTokenDeCookie(request);
 
-            // 2. Si hay token y es válido, autenticar al usuario
-            if (token != null && jwtTokenProvider.validateToken(token)) {
+            // Solo autenticar si hay token, es válido, y no hay autenticación previa
+            if (token != null
+                    && jwtTokenProvider.validateToken(token)
+                    && SecurityContextHolder.getContext().getAuthentication() == null) {
 
-                // 3. Extraer el número de documento del token
-                String numeroDocumento = jwtTokenProvider.getNumeroDocumentoFromToken(token);  
+                String numeroDocumento = jwtTokenProvider.getNumeroDocumentoFromToken(token);
                 UserDetails userDetails = customUserDetailsService.loadUserByUsername(numeroDocumento);
 
-                // 5. Crear el objeto de autenticación de Spring Security
                 UsernamePasswordAuthenticationToken authentication =
                         new UsernamePasswordAuthenticationToken(
-                                userDetails,
-                                null, // sin contraseña, ya está autenticado
-                                userDetails.getAuthorities()
-                        );
-
-                // 6. Agregar detalles del request (IP, session, etc.)
+                                userDetails, null, userDetails.getAuthorities());
                 authentication.setDetails(
-                        new WebAuthenticationDetailsSource().buildDetails(request)
-                );
+                        new WebAuthenticationDetailsSource().buildDetails(request));
 
-                // 7. Registrar la autenticación en el contexto de Spring Security
-                //    A partir de aquí Spring sabe quién es el usuario
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
-
         } catch (Exception e) {
-            System.out.println("No se pudo autenticar el usuario: " + e.getMessage());
-            // No lanzamos excepción → dejamos que Spring Security rechace más adelante
+            System.out.println("[JWT] No se pudo autenticar: " + e.getMessage());
         }
 
-        // 8. Continuar con el siguiente filtro de la cadena
         filterChain.doFilter(request, response);
     }
 
-    // ─────────────────────────────────────────
-    // Busca la cookie "JWT-TOKEN" en el request
-    // Retorna null si no existe
-    // ─────────────────────────────────────────
-    private String extraerTokenDeCookie(HttpServletRequest request) {
-        if (request.getCookies() == null) return null;
-
-        for (Cookie cookie : request.getCookies()) {
-            if ("JWT-TOKEN".equals(cookie.getName())) {
-                return cookie.getValue();
-            }
-        }
-        return null;
-    }
-
-    // ─────────────────────────────────────────
-    // Rutas que el filtro NO debe interceptar
-    // (login, register, recursos estáticos)
-    // ─────────────────────────────────────────
+    /**
+     * El filtro JWT solo interviene en /api/**.
+     * Vistas MVC, OAuth2 y recursos estáticos se excluyen.
+     */
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) {
         String path = request.getServletPath();
-        return path.startsWith("/auth/")     // login, register
-            || path.startsWith("/css/")      // estáticos
-            || path.startsWith("/js/")
-            || path.startsWith("/fonts/")
-            || path.startsWith("/images/")
-            || path.equals("/");             // página principal pública
+        return !path.startsWith("/api/");
+    }
+
+    private String extraerTokenDeCookie(HttpServletRequest request) {
+        if (request.getCookies() == null) return null;
+        for (Cookie cookie : request.getCookies()) {
+            if ("JWT-TOKEN".equals(cookie.getName())) return cookie.getValue();
+        }
+        return null;
     }
 }

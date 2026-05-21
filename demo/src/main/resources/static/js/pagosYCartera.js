@@ -1,3 +1,11 @@
+// ══════════════════════════════════════════════════════════════════════════════
+//  pagosYCartera.js
+//  Al cargar la página se detecta si viene de un callback OAuth2 exitoso
+//  (?oauth=ok) para abrir el modal de agregar método de pago.
+//  El botón "Agregar Método" inicia el flujo OAuth2 en vez de abrir el modal
+//  directamente, como verificación de identidad adicional.
+// ══════════════════════════════════════════════════════════════════════════════
+
 const propietarios = {
     1: {
         nombre: "Carlos Mendoza",
@@ -22,8 +30,8 @@ const propietarios = {
           email: "carlos.mendoza@email.com",
           telefono: "+57 300 123 4567"
         }
-      },
-      2: {
+    },
+    2: {
         nombre: "María González",
         apartamento: "Apartamento 205",
         area: "92 m²",
@@ -46,8 +54,8 @@ const propietarios = {
           email: "maria.gonzalez@email.com",
           telefono: "+57 310 987 6543"
         }
-      },
-      3: {
+    },
+    3: {
         nombre: "Juan Pérez",
         apartamento: "Apartamento 308",
         area: "78 m²",
@@ -70,28 +78,31 @@ const propietarios = {
           email: "juan.perez@email.com",
           telefono: "+57 320 555 5555"
         }
-      }
-    };
+    }
+};
 
-    function actualizarPropietario() {
-      const select = document.getElementById('propietarioSelect');
-      const propietarioId = select.value;
-      const datos = propietarios[propietarioId];
+// ── Render de propietario ─────────────────────────────────────────────────────
 
-      document.getElementById('nombrePropietario').textContent = datos.nombre;
-      document.getElementById('infoPropietario').textContent = datos.apartamento;
-      document.getElementById('areaPropietario').textContent = datos.area;
-      document.getElementById('cuotaMensual').textContent = datos.cuota;
-      document.getElementById('saldoActual').textContent = datos.saldo;
-      
-      const estadoEl = document.getElementById('estadoCartera');
-      estadoEl.textContent = datos.estado;
-      estadoEl.className = datos.estadoColor;
-      estadoEl.style.fontSize = '1.5rem';
-      estadoEl.style.fontWeight = '700';
+function actualizarPropietario() {
+    const select = document.getElementById('propietarioSelect');
+    const propietarioId = select.value;
+    const datos = propietarios[propietarioId];
 
-      const listaFacturas = document.getElementById('listaFacturas');
-      listaFacturas.innerHTML = datos.facturas.map(function(f) {
+    document.getElementById('nombrePropietario').textContent  = datos.nombre;
+    document.getElementById('infoPropietario').textContent    = datos.apartamento;
+    document.getElementById('areaPropietario').textContent    = datos.area;
+    document.getElementById('cuotaMensual').textContent       = datos.cuota;
+    document.getElementById('saldoActual').textContent        = datos.saldo;
+
+    const estadoEl = document.getElementById('estadoCartera');
+    estadoEl.textContent  = datos.estado;
+    estadoEl.className    = datos.estadoColor;
+    estadoEl.style.fontSize   = '1.5rem';
+    estadoEl.style.fontWeight = '700';
+
+    // Facturas
+    const listaFacturas = document.getElementById('listaFacturas');
+    listaFacturas.innerHTML = datos.facturas.map(function(f) {
         return '<div style="padding: 1rem 0; border-bottom: 1px solid #f0f2f5;">' +
           '<div class="flex justify-between items-center mb-2">' +
             '<div>' +
@@ -105,10 +116,11 @@ const propietarios = {
           '</div>' +
           (f.pagado ? '' : '<button onclick="simularPago(\'' + f.mes + '\', \'' + datos.cuota + '\')" class="btn-primary w-full mt-2">Pagar Ahora</button>') +
         '</div>';
-      }).join('');
+    }).join('');
 
-      const listaTransacciones = document.getElementById('listaTransacciones');
-      listaTransacciones.innerHTML = datos.transacciones.map(function(t) {
+    // Transacciones
+    const listaTransacciones = document.getElementById('listaTransacciones');
+    listaTransacciones.innerHTML = datos.transacciones.map(function(t) {
         return '<div class="flex items-center" style="gap: 0.75rem; padding: 1rem 0; border-bottom: 1px solid #f0f2f5;">' +
           '<div class="transaction-icon ' + (t.tipo === 'ingreso' ? 'icon-green' : 'icon-red') + '">' +
             '<i class="fas fa-arrow-' + (t.tipo === 'ingreso' ? 'up' : 'down') + '"></i>' +
@@ -119,10 +131,12 @@ const propietarios = {
           '</div>' +
           '<p class="font-semibold ' + (t.tipo === 'ingreso' ? 'text-emerald-500' : 'text-red-500') + '">' + t.monto + '</p>' +
         '</div>';
-      }).join('');
+    }).join('');
 
-      const infoFacturacion = document.getElementById('infoFacturacion');
-      infoFacturacion.innerHTML = '<div class="info-billing">' +
+    // Info facturación
+    const infoFacturacion = document.getElementById('infoFacturacion');
+    infoFacturacion.innerHTML =
+        '<div class="info-billing">' +
         '<h3 class="mb-4 font-semibold text-slate-700">' + datos.facturacion.nombre + '</h3>' +
         '<div style="line-height: 1.8;">' +
           '<p class="text-sm"><span class="text-slate-500">Documento:</span> <span class="font-semibold text-slate-700" style="margin-left: 0.5rem;">' + datos.facturacion.documento + '</span></p>' +
@@ -130,30 +144,99 @@ const propietarios = {
           '<p class="text-sm"><span class="text-slate-500">Teléfono:</span> <span class="font-semibold text-slate-700" style="margin-left: 0.5rem;">' + datos.facturacion.telefono + '</span></p>' +
         '</div>' +
         '<div style="margin-top: 1rem;">' +
-          '<button class="btn-outline w-full">' +
-            '<i class="fas fa-edit"></i> Editar' +
-          '</button>' +
+          '<button class="btn-outline w-full"><i class="fas fa-edit"></i> Editar</button>' +
         '</div>' +
-      '</div>';
+        '</div>';
+}
+
+function simularPago(mes, monto) {
+    alert('¡Pago simulado!\n\nConcepto: Administración ' + mes + '\nMonto: ' + monto +
+          '\n\nEsta es una simulación educativa. En un sistema real, aquí se procesaría el pago real.');
+}
+
+// ── OAuth2: Agregar Método de Pago ────────────────────────────────────────────
+
+/**
+ * Llamado por el botón "Agregar Método".
+ * En lugar de abrir el modal directamente, inicia el flujo OAuth2 con Google
+ * como paso de verificación de identidad.
+ * Cuando Google devuelva el control (?oauth=ok), abrirModal() se ejecuta.
+ */
+function iniciarAgregarMetodoPago() {
+    // Redirige al endpoint que inicia el flujo OAuth2
+    // OAuth2ActionController (/oauth2/iniciar) guarda la acción en sesión
+    // y redirige a /oauth2/authorization/google
+    window.location.href = '/oauth2/iniciar?accion=PAGO';
+}
+
+/**
+ * Abre el modal de agregar tarjeta.
+ * Se llama directamente al retornar de OAuth2 con ?oauth=ok,
+ * o puede llamarse desde abrirModal() si ya pasó la verificación.
+ */
+function abrirModalAgregarTarjeta() {
+    const modal = document.getElementById('modalAgregarMetodo');
+    if (modal) {
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+    }
+}
+
+function cerrarModalAgregarTarjeta() {
+    const modal = document.getElementById('modalAgregarMetodo');
+    if (modal) {
+        modal.classList.add('hidden');
+        modal.classList.remove('flex');
+    }
+}
+
+function guardarNuevoMetodo() {
+    const numero = document.getElementById('inputNumeroTarjeta')?.value?.trim();
+    const tipo   = document.getElementById('inputTipoTarjeta')?.value;
+
+    if (!numero || numero.length < 16) {
+        alert('Por favor ingrese un número de tarjeta válido (16 dígitos).');
+        return;
     }
 
-    function simularPago(mes, monto) {
-      alert('¡Pago simulado!\n\nConcepto: Administración ' + mes + '\nMonto: ' + monto + '\n\nEsta es una simulación educativa. En un sistema real, aquí se procesaría el pago real.');
-    }
+    // Aquí iría la llamada real a /api/pagos/metodos para guardar en MongoDB
+    alert('Método de pago agregado correctamente.\nTarjeta ' + tipo + ' terminada en ' + numero.slice(-4));
+    cerrarModalAgregarTarjeta();
+}
 
+// ── Detección del retorno OAuth2 al cargar la página ─────────────────────────
+
+window.addEventListener('DOMContentLoaded', function () {
     document.getElementById('propietarioSelect').addEventListener('change', actualizarPropietario);
     actualizarPropietario();
 
-    function confirmarCerrarSesion(event) {
-            event.preventDefault();
-            
-            if (confirm('¿Está seguro que desea cerrar sesión?')) {
-                // Limpiar sessionStorage
-                sessionStorage.clear();
-                
-                // Redirigir al logout
-                window.location.href = '/logout';
-            }
-            
-            return false;
+    const params = new URLSearchParams(window.location.search);
+    const oauth  = params.get('oauth');
+    const motivo = params.get('motivo');
+
+    if (oauth === 'ok') {
+        // Google verificó la identidad → abrir modal de agregar tarjeta
+        abrirModalAgregarTarjeta();
+        // Limpiar el query string de la URL sin recargar
+        history.replaceState(null, '', '/pagosYCartera');
+    } else if (oauth === 'error') {
+        const mensajes = {
+            'no_correo':          'No se pudo obtener el correo de Google.',
+            'correo_no_coincide': 'La cuenta de Google no coincide con tu usuario del sistema.',
+        };
+        alert('Error al verificar identidad con Google: ' +
+              (mensajes[motivo] || 'Inténtalo de nuevo.'));
+        history.replaceState(null, '', '/pagosYCartera');
+    }
+});
+
+// ── Cerrar sesión ─────────────────────────────────────────────────────────────
+
+function confirmarCerrarSesion(event) {
+    event.preventDefault();
+    if (confirm('¿Está seguro que desea cerrar sesión?')) {
+        sessionStorage.clear();
+        window.location.href = '/logout';
+    }
+    return false;
 }
